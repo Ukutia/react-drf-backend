@@ -8,7 +8,7 @@ WORKDIR /backend
 
 RUN python -m venv env /py && \
     /py/bin/pip install --upgrade pip && \
-    pip install -r /requirements.txt
+    /py/bin/pip install -r /requirements.txt
 
 ENV PATH="/py/bin:$PATH"
 
