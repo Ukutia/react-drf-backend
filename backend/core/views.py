@@ -8,6 +8,6 @@ from .serializers import ProductoSerializer
 
 class InventarioView(APIView):
     def get(self, request):
-        productos = Producto.objects.all()
+        productos = Producto.objects.filter(estado='disponible')
         serializer = ProductoSerializer(productos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
