@@ -24,7 +24,7 @@ const CrearPedido = () => {
     // Fetch los productos disponibles
     const fetchProductos = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/inventario/");
+        const response = await fetch("http://localhost:8000/api/productos/");
         const data = await response.json();
         setProductos(data);
       } catch (error) {

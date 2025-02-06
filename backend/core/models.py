@@ -20,22 +20,51 @@ class Cliente(models.Model):
         related_name='clientes'  # Permite acceder a los clientes de un vendedor con user.clientes
     )
     direccion = models.CharField(max_length=255)  # Dirección del cliente
+    telefono = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
 
     def __str__(self):
         return self.nombre  # Mostrar el nombre del cliente en el admin de Django
     
 
-
 class Producto(models.Model):
+    id = models.AutoField(primary_key=True)  # Campo ID automático
     nombre = models.CharField(max_length=100, verbose_name="Nombre del producto")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
-    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo por kilo")
     precio_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio por kilo")
-    peso_aproximado = models.DecimalField(
-        max_digits=5, decimal_places=2, blank=True, null=True, verbose_name="Peso aproximado por unidad (kg)"
+
+    def stock_actual(self):
+        entradas = self.facturas_entrada.aggregate(total=models.Sum('cantidad'))['total'] or 0
+        salidas = self.ventas.aggregate(total=models.Sum('cantidad'))['total'] or 0
+        ajustes = self.ajustesI.aggregate(total=models.Sum('cantidad'))['total'] or 0
+        return entradas - salidas + ajustes
+
+    facturas_entrada = models.ForeignKey(
+        'DetalleFactura', 
+        on_delete=models.CASCADE, 
+        related_name='productos', 
+        blank=True, 
+        null=True
     )
-    stock_kilos = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Stock disponible (kg)")
-    unidades_kilos = models.IntegerField(verbose_name="Unidades disponibles")
+    ventas = models.ForeignKey(
+        'DetallePedido', 
+        on_delete=models.CASCADE, 
+        related_name='productos', 
+        blank=True, 
+        null=True
+    )
+    ajustesI = models.ForeignKey(
+        'AjusteInventario', 
+        on_delete=models.CASCADE, 
+        related_name='productos', 
+        blank=True, 
+        null=True
+    )
+
+
+
+
+
 
     categoria = models.CharField(
         max_length=50, blank=True, null=True, choices=[
@@ -58,7 +87,31 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
+
+class AjusteInventario(models.Model):
+    TIPO_AJUSTE = [
+        ("merma", "Merma"),
+        ("exceso", "Exceso"),
+        ("ajuste", "Ajuste Manual"),
+    ]
+
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name="ajustes")
+    cantidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Cantidad ajustada (puede ser positiva o negativa)"
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_AJUSTE, verbose_name="Tipo de ajuste")
+    razon = models.TextField(blank=True, null=True, verbose_name="Razón del ajuste")
+    fecha = models.DateField(auto_now_add=True, verbose_name="Fecha del ajuste")
+
+    def __str__(self):
+        return f"Ajuste de {self.producto.nombre} - {self.cantidad} ({self.tipo})"
+
+
     
+
+
 
 class Pedido(models.Model):
     id = models.AutoField(primary_key=True)  # Campo ID automático
@@ -86,22 +139,23 @@ class Pedido(models.Model):
 
 
 class DetallePedido(models.Model):
-    pedido = models.ForeignKey(
-        Pedido, on_delete=models.CASCADE, related_name="detalles", verbose_name="Pedido"
-    )
-    producto = models.ForeignKey(
-        Producto, on_delete=models.CASCADE, verbose_name="Producto"
-    )
-    cantidad_kilos = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en kilos"
-    )
-    cantidad_unidades = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en Unidades"
-    )
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="detalles", verbose_name="Pedido")
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, verbose_name="Producto")
+    cantidad_kilos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en kilos")
+    cantidad_unidades = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en Unidades")
+    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio de venta (por kilo)")
+    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo por kilo en la venta")
+    total_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total de la venta")
+    fecha = models.DateField(auto_now_add=True, verbose_name="Fecha de venta")
 
-    precio_total = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Precio total"
-    )
+    def save(self, *args, **kwargs):
+        # Calcular el total de la venta
+        self.total_venta = self.cantidad_kilos * self.precio_venta
+        
+        # Calcular el margen según la fórmula: (Precio de venta - Costo por kilo) × Cantidad vendida
+        self.margen = (self.precio_venta - self.costo_por_kilo) * self.cantidad_kilos
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.producto.nombre} - {self.cantidad_kilos} kg"
@@ -117,7 +171,7 @@ class Factura(models.Model):
     numero_factura = models.CharField(max_length=50, unique=True, verbose_name="Número de factura" ,primary_key=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Subtotal")
     iva = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="IVA")
-    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total con IVA")
+    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total sin IVA")
 
     def __str__(self):
         return f"Factura {self.numero_factura} - {self.proveedor} - {self.fecha}"
@@ -141,10 +195,8 @@ class DetalleFactura(models.Model):
     cantidad_unidades = models.DecimalField(
         max_digits=10, decimal_places=0, verbose_name="Cantidad en Unidades"
     )
-    costo_total = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Costo total"
-    )
-    
+    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo por kilo")
+    costo_total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo total")
 
     def __str__(self):
         return f"Factura {self.factura.numero_factura} - {self.producto.nombre} - {self.cantidad_kilos} kg"

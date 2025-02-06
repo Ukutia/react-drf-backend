@@ -1,18 +1,19 @@
 from django.urls import path
-from .views import InventarioView
+from .views import ProductosView
 from .views import PedidoListView
 from rest_framework.routers import DefaultRouter
-from .views import PedidoViewSet  # Importamos el viewset
-from .views import PedidoViewSet
 from .views import CrearPedido
 from .views import ClienteListView
-
+from .views import CrearFacturaEntrada
+from .views import FacturaListView
 
 
 
 urlpatterns = [
-    path('inventario/', InventarioView.as_view(), name='inventario'),
+    path('productos/', ProductosView.as_view(), name='producto'),
     path('pedidos/', PedidoListView.as_view(), name='pedido-list'),
     path('pedidos/crear/', CrearPedido.as_view(), name='crear-pedido'),
     path('clientes/', ClienteListView.as_view(), name='clientes-list'),
+    path('facturas/crear', CrearFacturaEntrada.as_view(), name='crear-factura'),
+    path('facturas/', FacturaListView.as_view(), name='facturas-list'),
 ]

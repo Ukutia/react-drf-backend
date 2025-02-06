@@ -12,7 +12,7 @@ class ClienteSerializer(serializers.ModelSerializer):
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = [ 'nombre','stock_kilos','precio_por_kilo', 'costo_por_kilo', 'categoria', 'estado']
+        fields = [ 'id','nombre','precio_por_kilo', 'categoria', 'estado']
 
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
@@ -30,4 +30,20 @@ class PedidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = ['id', 'cliente', 'vendedor_nombre', 'fecha', 'estado', 'detalles']
+
+from rest_framework import serializers
+from .models import Factura, DetalleFactura
+
+class DetalleFacturaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DetalleFactura
+        fields = ['producto', 'cantidad_kilos', 'cantidad_unidades', 'costo_por_kilo', 'costo_total']
+
+class FacturaSerializer(serializers.ModelSerializer):
+    detalles = DetalleFacturaSerializer(many=True)
+
+    class Meta:
+        model = Factura
+        fields = ['proveedor', 'fecha', 'numero_factura', 'detalles']
+
 
