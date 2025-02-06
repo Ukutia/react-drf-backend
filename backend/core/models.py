@@ -35,9 +35,8 @@ class Producto(models.Model):
         max_digits=5, decimal_places=2, blank=True, null=True, verbose_name="Peso aproximado por unidad (kg)"
     )
     stock_kilos = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Stock disponible (kg)")
-    unidad_minima_venta = models.DecimalField(
-        max_digits=4, decimal_places=2, verbose_name="Unidad mínima de venta (kg)"
-    )
+    unidades_kilos = models.IntegerField(verbose_name="Unidades disponibles")
+
     categoria = models.CharField(
         max_length=50, blank=True, null=True, choices=[
             ("al vacio", "Al Vacio"),
@@ -94,8 +93,12 @@ class DetallePedido(models.Model):
         Producto, on_delete=models.CASCADE, verbose_name="Producto"
     )
     cantidad_kilos = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Cantidad en kilos"
+        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en kilos"
     )
+    cantidad_unidades = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en Unidades"
+    )
+
     precio_total = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Precio total"
     )
@@ -135,9 +138,13 @@ class DetalleFactura(models.Model):
     cantidad_kilos = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Cantidad en kilos"
     )
+    cantidad_unidades = models.DecimalField(
+        max_digits=10, decimal_places=0, verbose_name="Cantidad en Unidades"
+    )
     costo_total = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Costo total"
     )
+    
 
     def __str__(self):
         return f"Factura {self.factura.numero_factura} - {self.producto.nombre} - {self.cantidad_kilos} kg"

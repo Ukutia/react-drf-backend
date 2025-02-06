@@ -50,7 +50,6 @@ const Inventory = () => {
               <td>{producto.costo_por_kilo}</td>
               <td>{producto.precio_por_kilo}</td>
               <td>{producto.stock_kilos}</td>
-              <td>{producto.unidad_minima_venta}</td>
               <td>{producto.categoria}</td>
               <td>{producto.estado}</td>
             </tr>
