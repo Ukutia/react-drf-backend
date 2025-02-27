@@ -49,7 +49,7 @@ const CrearPedido = () => {
 
   // Optimización de la búsqueda de vendedor con useMemo
   const vendedorSeleccionado = useMemo(() => {
-    return clientes.find((cl) => cl.id === cliente)?.vendedor_nombre || "";
+    return clientes.find((cl) => cl.id === cliente)?.vendedor.nombre || "";
   }, [cliente, clientes]);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ const CrearPedido = () => {
     if (productoSeleccionado && cantidadSeleccionada > 0) {
       setProductosSeleccionados([
         ...productosSeleccionados,
-        { producto: productoSeleccionado, cantidad: cantidadSeleccionada },
+        { producto: productoSeleccionado, cantidadX: parseFloat(cantidadSeleccionada) },
       ]);
       setProductoSeleccionado(null);
       setCantidadSeleccionada("");
@@ -69,14 +69,15 @@ const CrearPedido = () => {
 
   const handleCreatePedido = async () => {
     const detalles = productosSeleccionados.map((detalle) => {
+      console.log(detalle.cantidadX * detalle.producto.precio_por_kilo)
       const precioTotal =
         detalle.producto.precio_por_kilo !== undefined
-          ? detalle.cantidad * detalle.producto.precio_por_kilo
+          ? detalle.cantidadX * detalle.producto.precio_por_kilo
           : 0; // Asegura que siempre haya un valor válido
 
       return {
         producto: detalle.producto.id,
-        cantidad_kilos: detalle.cantidad,
+        cantidad_kilos: detalle.cantidadX,
         cantidad_unidades: 1, // Ajustar según necesidad
         precio_total: precioTotal, // Asumimos precio por kilo
       };
@@ -90,7 +91,7 @@ const CrearPedido = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/api/pedidos/", {
+      const response = await fetch("http://localhost:8000/api/pedidos/crear/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,8 +100,10 @@ const CrearPedido = () => {
       });
 
       if (response.ok) {
+        const data = await response.json();
         alert("Pedido creado con éxito!");
       } else {
+        console.log(newPedido);
         const errorData = await response.json();
         console.error("Error details:", errorData);
         alert("Error al crear el pedido.");
@@ -136,7 +139,6 @@ const CrearPedido = () => {
           label="Vendedor"
           value={vendedor}
           onChange={(e) => setVendedor(e.target.value)}
-          disabled
         />
       </FormControl>
 
@@ -181,7 +183,7 @@ const CrearPedido = () => {
         {productosSeleccionados.map((item) => (
           <Box key={item.producto.id} display="flex" justifyContent="space-between">
             <Typography>{item.producto.nombre}</Typography>
-            <Typography>{item.cantidad} kg</Typography>
+            <Typography>{item.cantidadX} kg</Typography>
           </Box>
         ))}
       </Box>

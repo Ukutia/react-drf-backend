@@ -171,7 +171,7 @@ class Factura(models.Model):
     numero_factura = models.CharField(max_length=50, unique=True, verbose_name="Número de factura" ,primary_key=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Subtotal")
     iva = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="IVA")
-    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total sin IVA")
+    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total con IVA")
 
     def __str__(self):
         return f"Factura {self.numero_factura} - {self.proveedor} - {self.fecha}"
@@ -205,6 +205,23 @@ class DetalleFactura(models.Model):
         verbose_name = "Detalle de factura"
         verbose_name_plural = "Detalles de facturas"
 
+class PagoFactura(models.Model):
+    factura = models.OneToOneField(
+        Factura, 
+        on_delete=models.CASCADE, 
+        related_name="pago_factura", 
+        verbose_name="Factura"
+    )
+    fecha_de_pago = models.DateField(verbose_name="Fecha de pago")
+    monto_del_pago = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Monto del pago")
+
+    def __str__(self):
+        return f"Pago de Factura {self.factura.numero_factura} - {self.monto_del_pago} - {self.fecha_de_pago}"
+
+    class Meta:
+        verbose_name = "Pago de Factura"
+        verbose_name_plural = "Pagos de Facturas"
+
 
 class PagoVendedor(models.Model):
     id = models.AutoField(primary_key=True)  # ID automático
@@ -231,5 +248,14 @@ class PagoVendedor(models.Model):
         ordering = ['-fecha']
 
 
+class EntradaProducto(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad_kilos = models.DecimalField(max_digits=10, decimal_places=2)
+    cantidad_unidades = models.IntegerField(default=0)
+    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2)
+    fecha_entrada = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.producto.nombre} - {self.cantidad_kilos} kg - {self.costo_por_kilo} por kilo"
 
 

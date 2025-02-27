@@ -22,6 +22,7 @@ services:
       - ./backend:/backend
     command: >
       sh -c "until pg_isready -h db -U user; do sleep 2; done &&
+            python manage.py makemigrations &&
              python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
     environment:

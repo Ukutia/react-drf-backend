@@ -1,8 +1,5 @@
 from rest_framework import serializers
-from .models import Producto
-from rest_framework import serializers
-from .models import Pedido, DetallePedido, Producto
-from .models import Cliente
+from .models import Producto, Pedido, DetallePedido, Cliente, PagoFactura, Factura, DetalleFactura
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,38 +9,47 @@ class ClienteSerializer(serializers.ModelSerializer):
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = [ 'id','nombre','precio_por_kilo', 'categoria', 'estado']
-
+        fields = ['id', 'nombre', 'precio_por_kilo']
 
 class DetallePedidoSerializer(serializers.ModelSerializer):
     producto = ProductoSerializer()
 
     class Meta:
         model = DetallePedido
-        fields = ['id', 'producto','cantidad_unidades', 'cantidad_kilos', 'precio_total']
+        fields = ['id', 'producto', 'cantidad_unidades', 'cantidad_kilos', 'total_venta']
 
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True)
-    cliente = serializers.CharField(source='cliente.nombre', read_only=True)
-    vendedor_nombre = serializers.CharField(source='vendedor.nombre', read_only=True)
+    cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
+    vendedor = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
 
     class Meta:
         model = Pedido
-        fields = ['id', 'cliente', 'vendedor_nombre', 'fecha', 'estado', 'detalles']
+        fields = ['id', 'cliente', 'vendedor', 'fecha', 'estado', 'detalles']
 
-from rest_framework import serializers
-from .models import Factura, DetalleFactura
+    def create(self, validated_data):
+        detalles_data = validated_data.pop('detalles')
+        pedido = Pedido.objects.create(**validated_data)
+        for detalle_data in detalles_data:
+            DetallePedido.objects.create(pedido=pedido, **detalle_data)
+        return pedido
 
 class DetalleFacturaSerializer(serializers.ModelSerializer):
+    producto = ProductoSerializer()
+
     class Meta:
         model = DetalleFactura
-        fields = ['producto', 'cantidad_kilos', 'cantidad_unidades', 'costo_por_kilo', 'costo_total']
+        fields = ['producto', 'cantidad_kilos', 'costo_total']
+
+class PagoFacturaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PagoFactura
+        fields = ['fecha_de_pago', 'monto_del_pago']
 
 class FacturaSerializer(serializers.ModelSerializer):
     detalles = DetalleFacturaSerializer(many=True)
+    pago_factura = PagoFacturaSerializer(read_only=True)
 
     class Meta:
         model = Factura
-        fields = ['proveedor', 'fecha', 'numero_factura', 'detalles']
-
-
+        fields = ['proveedor', 'fecha', 'numero_factura', 'detalles', 'pago_factura', 'total', 'subtotal', 'iva']

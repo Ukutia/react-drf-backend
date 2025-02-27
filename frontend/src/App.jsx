@@ -4,6 +4,7 @@ import Pedidos from "./components/Pedidos";
 import CrearPedido from "./components/CrearPedido";
 import AgregarFactura from "./components/CrearFactura";
 import Facturas from "./components/Facturas";
+import PagarFactura from "./components/PagarFactura";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/pedidos/crear" element={<CrearPedido />} />
         <Route path="/facturas/crear" element={<AgregarFactura />} />
         <Route path="/facturas" element={<Facturas />} />
+        <Route path="/facturas/pagar" element={<PagarFactura />} />
       </Routes>
     </Router>
   );
