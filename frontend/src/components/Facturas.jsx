@@ -12,11 +12,13 @@ import {
   TableRow,
   IconButton,
   Modal,
+  Button,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import PagarFactura from "./PagarFactura";
 import DetallesPago from "./DetallesPago";
+import { useNavigate } from 'react-router-dom';
 
 const Facturas = () => {
   const [facturas, setFacturas] = useState([]);
@@ -24,6 +26,7 @@ const Facturas = () => {
   const [selectedFactura, setSelectedFactura] = useState(null);
   const [selectedPago, setSelectedPago] = useState(null);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch("http://localhost:8000/api/facturas")
@@ -54,10 +57,15 @@ const Facturas = () => {
   };
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Lista de Facturas
-      </Typography>
+    <Box p={3} sx={{ overflowX: 'auto' }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" gutterBottom>
+          Lista de Facturas
+        </Typography>
+        <Button variant="contained" color="primary" onClick={() => navigate('/facturas/crear')}>
+          Crear Factura
+        </Button>
+      </Box>
       {facturas.length === 0 ? (
         <Typography>No hay facturas disponibles.</Typography>
       ) : (
@@ -66,7 +74,7 @@ const Facturas = () => {
           return (
             <Card
               key={factura.numero_factura}
-              sx={{ mb: 2, width: '503px', backgroundColor: isPaid ? 'white' : 'orange' }}
+              sx={{ mb: 2, minWidth: '100%', backgroundColor: isPaid ? 'white' : 'orange' }}
             >
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center">

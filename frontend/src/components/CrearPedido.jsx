@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -8,7 +8,9 @@ import {
   FormControl,
   Box,
   Typography,
+  IconButton,
 } from "@mui/material";
+import { Delete } from "@mui/icons-material";
 
 const CrearPedido = () => {
   const [productos, setProductos] = useState([]);
@@ -18,7 +20,8 @@ const CrearPedido = () => {
   const [vendedor, setVendedor] = useState("");
   const [estado] = useState("pendiente");
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [cantidadSeleccionada, setCantidadSeleccionada] = useState("");
+  const [cantidad_KSeleccionada, setCantidadKSeleccionada] = useState("");
+  const [cantidad_USeleccionada, setCantidadUSeleccionada] = useState("");
 
   useEffect(() => {
     // Fetch los productos disponibles
@@ -47,45 +50,45 @@ const CrearPedido = () => {
     fetchClientes();
   }, []);
 
-  // Optimización de la búsqueda de vendedor con useMemo
-  const vendedorSeleccionado = useMemo(() => {
-    return clientes.find((cl) => cl.id === cliente)?.vendedor.nombre || "";
-  }, [cliente, clientes]);
-
-  useEffect(() => {
-    setVendedor(vendedorSeleccionado);
-  }, [vendedorSeleccionado]);
+  const handleClienteChange = (e) => {
+    const selectedClienteId = e.target.value;
+    setCliente(selectedClienteId);
+    const selectedCliente = clientes.find((cl) => cl.id === selectedClienteId);
+    setVendedor(selectedCliente?.vendedor || "");
+  };
 
   const handleAddProducto = () => {
-    if (productoSeleccionado && cantidadSeleccionada > 0) {
+    if (productoSeleccionado && cantidad_USeleccionada > 0) {
       setProductosSeleccionados([
         ...productosSeleccionados,
-        { producto: productoSeleccionado, cantidadX: parseFloat(cantidadSeleccionada) },
+        { 
+          producto: productoSeleccionado, 
+          cantidad_K: cantidad_KSeleccionada ? parseFloat(cantidad_KSeleccionada) : null,
+          cantidad_U: cantidad_USeleccionada ? parseFloat(cantidad_USeleccionada) : null 
+        },
       ]);
       setProductoSeleccionado(null);
-      setCantidadSeleccionada("");
+      setCantidadKSeleccionada("");
+      setCantidadUSeleccionada("");
     }
+  };
+
+  const handleRemoveProducto = (productoId) => {
+    setProductosSeleccionados(productosSeleccionados.filter(item => item.producto.id !== productoId));
   };
 
   const handleCreatePedido = async () => {
     const detalles = productosSeleccionados.map((detalle) => {
-      console.log(detalle.cantidadX * detalle.producto.precio_por_kilo)
-      const precioTotal =
-        detalle.producto.precio_por_kilo !== undefined
-          ? detalle.cantidadX * detalle.producto.precio_por_kilo
-          : 0; // Asegura que siempre haya un valor válido
-
       return {
         producto: detalle.producto.id,
-        cantidad_kilos: detalle.cantidadX,
-        cantidad_unidades: 1, // Ajustar según necesidad
-        precio_total: precioTotal, // Asumimos precio por kilo
+        cantidad_kilos: detalle.cantidad_K,
+        cantidad_unidades: detalle.cantidad_U,
       };
     });
 
     const newPedido = {
       cliente,
-      vendedor,
+      vendedor: vendedor.id,
       estado,
       detalles,
     };
@@ -103,7 +106,6 @@ const CrearPedido = () => {
         const data = await response.json();
         alert("Pedido creado con éxito!");
       } else {
-        console.log(newPedido);
         const errorData = await response.json();
         console.error("Error details:", errorData);
         alert("Error al crear el pedido.");
@@ -123,7 +125,7 @@ const CrearPedido = () => {
         <InputLabel>Cliente</InputLabel>
         <Select
           value={cliente}
-          onChange={(e) => setCliente(e.target.value)}
+          onChange={handleClienteChange}
           label="Cliente"
         >
           {clientes.map((cliente) => (
@@ -137,8 +139,9 @@ const CrearPedido = () => {
       <FormControl fullWidth margin="normal">
         <TextField
           label="Vendedor"
-          value={vendedor}
+          value={vendedor.sigla}
           onChange={(e) => setVendedor(e.target.value)}
+          disabled
         />
       </FormControl>
 
@@ -162,12 +165,17 @@ const CrearPedido = () => {
             ))}
           </Select>
         </FormControl>
-
+        <TextField
+          label="Cantidad (Unidades)"
+          type="number"
+          value={cantidad_USeleccionada}
+          onChange={(e) => setCantidadUSeleccionada(e.target.value)}
+        />
         <TextField
           label="Cantidad (kg)"
           type="number"
-          value={cantidadSeleccionada}
-          onChange={(e) => setCantidadSeleccionada(e.target.value)}
+          value={cantidad_KSeleccionada}
+          onChange={(e) => setCantidadKSeleccionada(e.target.value)}
         />
         <Button
           variant="contained"
@@ -181,9 +189,13 @@ const CrearPedido = () => {
       <Typography variant="h6">Productos Seleccionados:</Typography>
       <Box marginBottom={2}>
         {productosSeleccionados.map((item) => (
-          <Box key={item.producto.id} display="flex" justifyContent="space-between">
+          <Box key={item.producto.id} display="flex" justifyContent="space-between" alignItems="center">
             <Typography>{item.producto.nombre}</Typography>
-            <Typography>{item.cantidadX} kg</Typography>
+            <Typography>{item.cantidad_U} Unidades</Typography>
+            <Typography>{item.cantidad_K} kg</Typography>
+            <IconButton onClick={() => handleRemoveProducto(item.producto.id)}>
+              <Delete />
+            </IconButton>
           </Box>
         ))}
       </Box>

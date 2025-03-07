@@ -12,6 +12,7 @@ Ejecuta este comando para borrar todas las migraciones en la app core:
 
 
 find core/migrations/ -type f -name "*.py" ! -name "__init__.py" -delete
+
 Esto eliminará todos los archivos de migraciones, excepto __init__.py.
 
 2️⃣ Eliminar la base de datos (opcional)
@@ -40,3 +41,15 @@ docker compose exec backend python manage.py migrate
 
 
 docker compose exec backend python manage.py createsuperuser
+
+
+FALTA:
+
+Que funcionen los 3 puntos a la primera
+Editar Unidades
+Ver tema sobre reserva
+
+
+
+
+

@@ -125,12 +125,28 @@ class Pedido(models.Model):
     estado = models.CharField(
         max_length=20,
         choices=[
-            ("pendiente", "Pendiente"),
-            ("completado", "Completado"),
-            ("cancelado", "Cancelado")
+            ("Reservado", "Reservado"),
+            ("Preparado", "Preparado"),
+            ("Anulado", "Anulado"),
+            ("Pagado", "Pagado"),
         ],
-        default="pendiente",
+        default="Reservado",
         verbose_name="Estado del pedido"
+    )
+    total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total del pedido", default=0)
+
+    tipo_recibo = models.CharField(
+        max_length=10,
+        choices=[
+            ("Boleta", "Boleta"),
+            ("Factura", "Factura"),
+        ],
+        default="Boleta",
+        verbose_name="Tipo de Recibo"
+    )
+
+    recibo = models.ImageField(
+        upload_to="recibo_pedidos/", blank=True, null=True, verbose_name="Recibo (Foto)"
     )
 
     def __str__(self):
@@ -141,19 +157,24 @@ class Pedido(models.Model):
 class DetallePedido(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="detalles", verbose_name="Pedido")
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, verbose_name="Producto")
-    cantidad_kilos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en kilos")
+    cantidad_kilos = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en kilos",default=0)
     cantidad_unidades = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Cantidad en Unidades")
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio de venta (por kilo)")
-    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo por kilo en la venta")
-    total_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total de la venta")
+    costo_por_kilo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Costo por kilo en la venta", default=0)
+    total_venta = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total de la venta",default=0)
+    total_costo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total del costo", default=0)
+    margen = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Margen", default=0)
     fecha = models.DateField(auto_now_add=True, verbose_name="Fecha de venta")
+    facturas = models.ManyToManyField('Factura', related_name='detalles_pedido', verbose_name="Facturas",default=0)
+
 
     def save(self, *args, **kwargs):
-        # Calcular el total de la venta
-        self.total_venta = self.cantidad_kilos * self.precio_venta
+
+        if(self.cantidad_kilos > 0):
+            self.total_costo = self.cantidad_kilos * self.costo_por_kilo
         
         # Calcular el margen según la fórmula: (Precio de venta - Costo por kilo) × Cantidad vendida
-        self.margen = (self.precio_venta - self.costo_por_kilo) * self.cantidad_kilos
+        self.margen = self.total_venta - self.total_costo
         
         super().save(*args, **kwargs)
 
@@ -163,6 +184,8 @@ class DetallePedido(models.Model):
     class Meta:
         verbose_name = "Detalle del pedido"
         verbose_name_plural = "Detalles de pedidos"
+
+
 
 
 class Factura(models.Model):
@@ -180,6 +203,15 @@ class Factura(models.Model):
         verbose_name = "Factura"
         verbose_name_plural = "Facturas"
         ordering = ['-fecha']
+
+
+class FacturaDetallePedido(models.Model):
+    detallepedido = models.ForeignKey(DetallePedido, on_delete=models.CASCADE)
+    factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
+    cantidad_unidades = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ('detallepedido', 'factura')
 
 
 class DetalleFactura(models.Model):
@@ -249,6 +281,7 @@ class PagoVendedor(models.Model):
 
 
 class EntradaProducto(models.Model):
+    factura = models.ForeignKey(Factura, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad_kilos = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad_unidades = models.IntegerField(default=0)

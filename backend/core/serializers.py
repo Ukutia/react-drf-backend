@@ -1,10 +1,16 @@
 from rest_framework import serializers
-from .models import Producto, Pedido, DetallePedido, Cliente, PagoFactura, Factura, DetalleFactura
+from .models import Producto, Pedido, DetallePedido, Cliente, PagoFactura, Factura, DetalleFactura, Vendedor
+
+class VendedorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vendedor
+        fields = ['id', 'nombre', 'sigla']
 
 class ClienteSerializer(serializers.ModelSerializer):
+    vendedor = VendedorSerializer()
     class Meta:
         model = Cliente
-        fields = ['id', 'nombre', 'vendedor', 'direccion']
+        fields = ['id', 'nombre', 'vendedor', 'direccion', 'telefono', 'email']
 
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,16 +22,16 @@ class DetallePedidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DetallePedido
-        fields = ['id', 'producto', 'cantidad_unidades', 'cantidad_kilos', 'total_venta']
+        fields = ['id', 'producto', 'cantidad_unidades', 'cantidad_kilos', 'total_venta', 'total_costo','facturas']
 
 class PedidoSerializer(serializers.ModelSerializer):
     detalles = DetallePedidoSerializer(many=True)
-    cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
-    vendedor = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
+    cliente = ClienteSerializer()
+    vendedor = VendedorSerializer()
 
     class Meta:
         model = Pedido
-        fields = ['id', 'cliente', 'vendedor', 'fecha', 'estado', 'detalles']
+        fields = ['id', 'cliente', 'vendedor', 'fecha', 'estado', 'detalles', 'total']
 
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')
@@ -39,7 +45,7 @@ class DetalleFacturaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DetalleFactura
-        fields = ['producto', 'cantidad_kilos', 'costo_total']
+        fields = ['producto', 'cantidad_kilos', 'costo_total','cantidad_unidades','costo_por_kilo']
 
 class PagoFacturaSerializer(serializers.ModelSerializer):
     class Meta:
